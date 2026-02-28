@@ -1,0 +1,116 @@
+# CAST-ACF Default Configuration
+# Paper: "CAST-ACF: Robust Generation and Evaluation for Multi-Granularity Timeline Summarization"
+
+# ==================== Evidence Mining (Section 3.2.A, Equation 1) ====================
+mining:
+  # Scoring weights: S(i,j) = α·sem + β·bm25 - γ·Δt + δ·same_day
+  alpha: 1.0              # Semantic similarity weight
+  beta: 0.5               # BM25 lexical weight
+  gamma: 0.05             # Time penalty weight (per day)
+  delta: 0.5              # Same-day bonus
+  
+  # Max evidence per window at each granularity
+  L_N: 6
+  L_10: 4
+  L_5: 3
+  
+  # MMR deduplication threshold
+  dedup_threshold: 0.85
+  
+  # Embedding model for semantic similarity
+  embed_model: "moka-ai/m3e-large"
+
+# ==================== Selector Training (Section 3.2.B) ====================
+selector:
+  # Feature extraction uses 9-dimensional vectors
+  # See cast/models/selector_feats.py for details
+  
+  # Training parameters
+  neg_downsample: 0.5     # Negative sample ratio
+  topk_near: 80           # Max candidates per window
+  
+  # Classifier: sklearn LogisticRegression
+  # class_weight: "balanced"
+  # max_iter: 200
+  # solver: "lbfgs"
+
+# ==================== Summarizer Training (Section 3.2.C) ====================
+summarizer:
+  # Base model
+  base_model: "Qwen/Qwen2.5-7B-Instruct"
+  
+  # LoRA configuration
+  lora:
+    r: 16
+    alpha: 32
+    dropout: 0.05
+    target_modules:
+      - "q_proj"
+      - "k_proj"
+      - "v_proj"
+      - "o_proj"
+      - "gate_proj"
+      - "up_proj"
+      - "down_proj"
+  
+  # Training hyperparameters
+  training:
+    epochs: 2
+    batch_size: 2
+    gradient_accumulation: 8      # Effective batch size = 16
+    learning_rate: 2.0e-5
+    warmup_ratio: 0.03
+    weight_decay: 0.0
+    gradient_checkpointing: true
+    label_smoothing: 0.05
+  
+  # Sequence lengths
+  max_src_tokens: 1400
+  max_tgt_tokens: 64
+  
+  # Prompt configuration
+  prompt:
+    evidence_mode: "title"        # "title", "title+lead", "atoms", "atoms+title"
+    headline_char_limit: 56
+    use_chat_template: true
+
+# ==================== Inference (Section 3.2.D) ====================
+inference:
+  # Generation parameters
+  max_new_tokens: 72
+  min_new_tokens: 24
+  num_beams: 4
+  length_penalty: 0.9
+  do_sample: false
+  
+  # Window construction
+  window:
+    # K=N: Dynamic based on 0.8 × unique_days
+    # K=10/5: Fixed number
+    busy_day_augmentation: true
+    
+  # Per-day evidence deduplication
+  deduplicate_per_day: true
+
+# ==================== ACF Evaluation (Section 4.2) ====================
+evaluation:
+  # Time scale: τ = α_τ × span
+  alpha_tau: 0.1
+  tau_min: 4.0            # days
+  tau_max: 21.0           # days
+  
+  # Score normalization: φ(x) = (clip(x, L, H) - L) / (H - L)
+  clip_lo: 0.15           # L_φ
+  clip_hi: 0.85           # H_φ
+  
+  # Top-k averaging for entailment
+  topk_frac: 0.6          # α_topk
+  
+  # Coverage thresholds
+  theta: 0.50             # Main threshold
+  theta_c: 0.38           # Content threshold (entF1_scaled)
+  theta_t: 0.60           # Time threshold (w_ij)
+  
+  # Backend for entailment scoring
+  entail_backend: "rouge"  # "rouge" or "nli"
+  nli_model: "IDEA-CCNL/Erlangshen-MegatronBert-1.3B-NLI"
