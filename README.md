@@ -26,8 +26,6 @@ We propose **CAST** (Chronology-windowed Abstractive Summarization for multi-gra
    - **Coverage (C)**: Fraction of reference events adequately covered
    - **Factuality (F)**: Faithfulness to reference content
 
-![CAST Framework](docs/framework.png)
-
 ## Installation
 
 ```bash
@@ -218,6 +216,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgments
 
-- The DTELS benchmark dataset is from [Sun et al., 2022]
+- The DTELS benchmark dataset is from [Zhang et al., NAACL 2025]
 - We use [m3e-large](https://huggingface.co/moka-ai/m3e-large) for Chinese embeddings
 - Base LLM: [Qwen2.5-7B-Instruct](https://huggingface.co/Qwen/Qwen2.5-7B-Instruct)
